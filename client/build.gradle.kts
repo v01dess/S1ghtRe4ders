@@ -1,9 +1,8 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.jvm.tasks.Jar
 
 plugins {
     application
     java
-    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 java {
@@ -21,26 +20,28 @@ repositories {
 }
 
 dependencies {
-    val javafxVersion = "21.0.9"
-
-    implementation("org.openjfx:javafx-base:$javafxVersion:win")
-    implementation("org.openjfx:javafx-controls:$javafxVersion:win")
-    implementation("org.openjfx:javafx-graphics:$javafxVersion:win")
-    implementation("org.openjfx:javafx-fxml:$javafxVersion:win")
-}
-
-tasks.withType<Jar> {
-    manifest {
-        attributes["Main-Class"] = "com.s1ghtre4ders.client.LobbyClient"
-    }
+    // no JavaFX Maven deps – use local SDK
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
 
-tasks.withType<ShadowJar> {
-    archiveBaseName.set("s1ghtre4ders-client")
-    archiveVersion.set("")
-    archiveClassifier.set("")
+tasks.register<Jar>("clientFatJar") {
+    archiveBaseName.set("S1ghtRe4dersClient")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from(sourceSets.main.get().output)
+
+    from({
+        configurations.runtimeClasspath.get()
+            .filter { it.name.endsWith("jar") }
+            .map { zipTree(it) }
+    })
+
+    manifest {
+        attributes["Main-Class"] = "com.s1ghtre4ders.client.LobbyClient"
+    }
+
+    destinationDirectory.set(layout.buildDirectory.dir("dist"))
 }
